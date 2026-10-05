@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TRADING SIGNAL PRO v2.0</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;
+ background:#06101c;
+ color:#fff;
+ font-family:Arial,sans-serif;
+}
+.header{
+ padding:16px;
+ text-align:center;
+ background:#0c1929;
+ border-bottom:1px solid #263b55;
+}
+.header h1{margin:0;font-size:21px}
+.header p{margin:6px 0 0;color:#8fa4bd;font-size:12px}
+.container{max-width:950px;margin:auto;padding:12px}
+.card{
+ background:#0c1929;
+ border:1px solid #263b55;
+ border-radius:14px;
+ padding:15px;
+ margin-bottom:13px;
+}
+h2{font-size:15px;margin:0 0 12px}
+select,textarea,input,button{
+ width:100%;
+ padding:11px;
+ margin-top:7px;
+ border-radius:8px;
+ border:1px solid #304963;
+ background:#07131f;
+ color:#fff;
+}
+button{
+ background:#1268e8;
+ border:0;
+ font-weight:bold;
+ cursor:pointer;
+}
+button.secondary{background:#24364d}
+textarea{min-height:120px;font-family:monospace}
+.grid{
+ display:grid;
+ grid-template-columns:repeat(2,1fr);
+ gap:9px;
+}
+.grid4{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:9px;
+}
+.stat{
+ background:#07131f;
+ border-radius:9px;
+ padding:12px;
+}
+.label{font-size:11px;color:#8197b2}
+.value{font-size:18px;font-weight:bold;margin-top:5px}
+.signal{
+ text-align:center;
+ background:#07131f;
+ border-radius:12px;
+ padding:22px;
+}
+.signalName{font-size:34px;font-weight:bold}
+.buy{color:#20e58a}
+.sell{color:#ff5268}
+.wait{color:#ffd45c}
+.conf{font-size:18px;margin-top:6px}
+canvas{
+ width:100%;
+ height:340px;
+ background:#07131f;
+ border-radius:10px;
+}
+.bar{
+ height:13px;
+ background:#17283b;
+ border-radius:10px;
+ overflow:hidden;
+ margin-top:8px;
+}
+.barFill{
+ height:100%;
+ width:0%;
+ transition:.3s;
+}
+table{
+ width:100%;
+ border-collapse:collapse;
+ font-size:12px;
+}
+th,td{
+ padding:9px 5px;
+ border-bottom:1px solid #23384f;
+ text-align:center;
+}
+th{color:#8298b3}
+.good{color:#20e58a}
+.bad{color:#ff5268}
+.warn{color:#ffd45c}
+.note{
+ color:#8197b2;
+ font-size:11px;
+ line-height:1.5;
+}
+.timer{
+ font-size:28px;
+ text-align:center;
+ font-weight:bold;
+}
+@media(max-width:600px){
+ .grid4{grid-template-columns:repeat(2,1fr)}
+ canvas{height:270px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+<h1>📊 TRADING SIGNAL PRO v2.0</h1>
+<p>EMA • RSI • MACD • Bollinger • Support/Resistance</p>
+</div>
+
+<div class="container">
+
+<!-- MARKET -->
+<div class="card">
+<h2>⚙️ MARKET</h2>
+
+<div class="grid">
+<select id="market">
+<option>EUR/USD</option>
+<option>GBP/USD</option>
+<option>USD/JPY</option>
+<option>BTC/USD</option>
+<option>ETH/USD</option>
+<option>XAU/USD</option>
+</select>
+
+<select id="timeframe">
+<option value="60">1 Menit</option>
+<option value="300">5 Menit</option>
+<option value="900">15 Menit</option>
+<option value="3600">1 Jam</option>
+</select>
+</div>
+
+<p class="note">
+Timer di bawah adalah timer simulasi candle berdasarkan timeframe yang dipilih.
+</p>
+
+<div class="timer" id="timer">01:00</div>
+</div>
+
+
+<!-- DATA -->
+<div class="card">
+<h2>📥 DATA HARGA CLOSE</h2>
+
+<p class="note">
+Masukkan minimal 30 harga Close. Satu angka per baris atau dipisahkan koma.
+</p>
+
+<textarea id="prices">100
+101
+100.5
+102
+103
+102.5
+104
+105
+104.5
+106
+107
+108
+107
+109
+110
+109.5
+111
+112
+111
+113
+114
+113.5
+115
+116
+117
+118
+117.5
+119
+120
+121
+122
+123
+122.5
+124
+125
+124.5
+126
+127
+126.5
+128
+129
+130</textarea>
+
+<div class="grid">
+<button onclick="analyze()">🔍 ANALISIS</button>
+<button class="secondary" onclick="randomData()">🎲 DATA SIMULASI</button>
+</div>
+</div>
+
+
+<!-- SIGNAL -->
+<div class="card">
+<h2>🚦 SIGNAL UTAMA</h2>
+
+<div class="signal">
+
+<div id="signal" class="signalName wait">
+WAIT
+</div>
+
+<div id="confidence" class="conf">
+Confidence 0%
+</div>
+
+<div class="bar">
+<div id="scoreBar" class="barFill"></div>
+</div>
+
+<p id="reason" class="note">
+Menunggu analisis...
+</p>
+
+</div>
+</div>
+
+
+<!-- SCORE -->
+<div class="card">
+<h2>🎯 SCORE SIGNAL</h2>
+
+<div class="grid">
+
+<div class="stat">
+<div class="label">BUY SCORE</div>
+<div id="buyScore" class="value good">0</div>
+</div>
+
+<div class="stat">
+<div class="label">SELL SCORE</div>
+<div id="sellScore" class="value bad">0</div>
+</div>
+
+</div>
+</div>
+
+
+<!-- INDICATORS -->
+<div class="card">
+<h2>📊 INDIKATOR</h2>
+
+<div class="grid4">
+
+<div class="stat">
+<div class="label">PRICE</div>
+<div id="price" class="value">-</div>
+</div>
+
+<div class="stat">
+<div class="label">EMA 9</div>
+<div id="ema9" class="value">-</div>
+</div>
+
+<div class="stat">
+<div class="label">EMA 21</div>
+<div id="ema21" class="value">-</div>
+</div>
+
+<div class="stat">
+<div class="label">RSI</div>
+<div id="rsi" class="value">-</div>
+</div>
+
+<div class="stat">
+<div class="label">MACD</div>
+<div id="macd" class="value">-</div>
+</div>
+
+<div class="stat">
+<div class="label">SIGNAL MACD</div>
+<div id="macdSignal" class="value">-</div>
+</div>
+
+<div class="stat">
+<div class="label">BB UPPER</div>
+<div id="bbUpper" class="value">-</div>
+</div>
+
+<div class="stat">
+<div class="label">BB LOWER</div>
+<div id="bbLower" class="value">-</div>
+</div>
+
+</div>
+</div>
+
+
+<!-- CHART -->
+<div class="card">
+<h2>📈 PRICE CHART</h2>
+<canvas id="chart"></canvas>
+</div>
+
+
+<!-- LEVEL -->
+<div class="card">
+<h2>📌 SUPPORT / RESISTANCE</h2>
+
+<div class="grid">
+
+<div class="stat">
+<div class="label">SUPPORT</div>
+<div id="support" class="value good">-</div>
+</div>
+
+<div class="stat">
+<div class="label">RESISTANCE</div>
+<div id="resistance" class="value bad">-</div>
+</div>
+
+</div>
+</div>
+
+
+<!-- ANALYSIS -->
+<div class="card">
+<h2>🧠 DETAIL ANALISIS</h2>
+
+<table>
+<thead>
+<tr>
+<th>INDIKATOR</th>
+<th>KONDISI</th>
+<th>SCORE</th>
+</tr>
+</thead>
+
+<tbody id="analysisTable"></tbody>
+</table>
+</div>
+
+
+<!-- HISTORY -->
+<div class="card">
+<h2>🕘 HISTORI SIGNAL</h2>
+
+<table>
+<thead>
+<tr>
+<th>WAKTU</th>
+<th>MARKET</th>
+<th>SIGNAL</th>
+<th>CONF</th>
+</tr>
+</thead>
+
+<tbody id="history"></tbody>
+</table>
+</div>
+
+
+<div class="card">
+<p class="note">
+⚠️ PERINGATAN: Signal dihasilkan dari indikator teknikal dan data
+yang dimasukkan ke halaman ini. Confidence adalah skor algoritmik,
+bukan probabilitas kemenangan yang sebenarnya. Tidak ada sistem
+teknikal yang dapat menjamin profit.
+</p>
+</div>
+
+</div>
+
+<script>
+
+/* =========================
+   UTILITIES
+========================= */
+
+function getData(){
+
+ let raw=document.getElementById("prices").value;
+
+ return raw
+ .split(/[\s,]+/)
+ .map(Number)
+ .filter(x=>Number.isFinite(x));
+
+}
+
+function average(arr){
+
+ return arr.reduce((a,b)=>a+b,0)/arr.length;
+
+}
+
+
+/* =========================
+   EMA
+========================= */
+
+function EMA(data,period){
+
+ if(data.length<period)return null;
+
+ let ema=average(data.slice(0,period));
+ let k=2/(period+1);
+
+ for(let i=period;i<data.length;i++){
+
+   ema=(data[i]-ema)*k+ema;
+
+ }
+
+ return ema;
+
+}
+
+
+/* =========================
+   RSI
+========================= */
+
+function RSI(data,period=14){
+
+ if(data.length<=period)return null;
+
+ let gain=0;
+ let loss=0;
+
+ for(let i=1;i<=period;i++){
+
+   let d=data[i]-data[i-1];
+
+   if(d>0)gain+=d;
+   else loss+=Math.abs(d);
+
+ }
+
+ let avgGain=gain/period;
+ let avgLoss=loss/period;
+
+ for(let i=period+1;i<data.length;i++){
+
+   let d=data[i]-data[i-1];
+
+   let g=d>0?d:0;
+   let l=d<0?Math.abs(d):0;
+
+   avgGain=(avgGain*(period-1)+g)/period;
+   avgLoss=(avgLoss*(period-1)+l)/period;
+
+ }
+
+ if(avgLoss===0)return 100;
+
+ let rs=avgGain/avgLoss;
+
+ return 100-(100/(1+rs));
+
+}
+
+
+/* =========================
+   MACD
+========================= */
+
+function MACD(data){
+
+ let ema12=EMA(data,12);
+ let ema26=EMA(data,26);
+
+ if(ema12===null||ema26===null)
+ return {macd:0,signal:0};
+
+ let macdValues=[];
+
+ for(let i=26;i<data.length;i++){
+
+   let part=data.slice(0,i+1);
+
+   macdValues.push(
+     EMA(part,12)-EMA(part,26)
+   );
+
+ }
+
+ let macd=ema12-ema26;
+
+ let signal=
+   macdValues.length>=9
+   ? EMA(macdValues,9)
+   : macd;
+
+ return {
+   macd:macd,
+   signal:signal
+ };
+
+}
+
+
+/* =========================
+   BOLLINGER
+========================= */
+
+function Bollinger(data,period=20){
+
+ let arr=data.slice(-period);
+
+ let mid=average(arr);
+
+ let variance=
+ arr.reduce(
+   (sum,x)=>sum+Math.pow(x-mid,2),0
+ )/arr.length;
+
+ let sd=Math.sqrt(variance);
+
+ return {
+   middle:mid,
+   upper:mid+2*sd,
+   lower:mid-2*sd
+ };
+
+}
+
+
+/* =========================
+   SUPPORT RESISTANCE
+========================= */
+
+function levels(data){
+
+ let arr=data.slice(-20);
+
+ return {
+   support:Math.min(...arr),
+   resistance:Math.max(...arr)
+ };
+
+}
+
+
+/* =========================
+   ANALYSIS
+========================= */
+
+function analyze(){
+
+ let data=getData();
+
+ if(data.length<30){
+
+   alert("Masukkan minimal 30 data harga.");
+
+   return;
+
+ }
+
+ let price=data[data.length-1];
+
+ let ema9=EMA(data,9);
+ let ema21=EMA(data,21);
+ let rsi=RSI(data,14);
+ let macd=MACD(data);
+ let bb=Bollinger(data,20);
+ let sr=levels(data);
+
+ let buy=0;
+ let sell=0;
+
+ let rows=[];
+
+
+ /* EMA */
+
+ if(ema9>ema21){
+
+   buy+=25;
+
+   rows.push([
+    "EMA 9/21",
+    "Bullish",
+    "+25 BUY"
+   ]);
+
+ }else{
+
+   sell+=25;
+
+   rows.push([
+    "EMA 9/21",
+    "Bearish",
+    "+25 SELL"
+   ]);
+
+ }
+
+
+ /* RSI */
+
+ if(rsi<30){
+
+   buy+=20;
+
+   rows.push([
+    "RSI",
+    "Oversold",
+    "+20 BUY"
+   ]);
+
+ }else if(rsi>70){
+
+   sell+=20;
+
+   rows.push([
+    "RSI",
+    "Overbought",
+    "+20 SELL"
+   ]);
+
+ }else if(rsi>=50){
+
+   buy+=10;
+
+   rows.push([
+    "RSI",
+    "Bullish > 50",
+    "+10 BUY"
+   ]);
+
+ }else{
+
+   sell+=10;
+
+   rows.push([
+    "RSI",
+    "Bearish < 50",
+    "+10 SELL"
+   ]);
+
+ }
+
+
+ /* MACD */
+
+ if(macd.macd>macd.signal){
+
+   buy+=20;
+
+   rows.push([
+    "MACD",
+    "Bullish",
+    "+20 BUY"
+   ]);
+
+ }else{
+
+   sell+=20;
+
+   rows.push([
+    "MACD",
+    "Bearish",
+    "+20 SELL"
+   ]);
+
+ }
+
+
+ /* BOLLINGER */
+
+ if(price<bb.lower){
+
+   buy+=20;
+
+   rows.push([
+    "Bollinger",
+    "Di bawah lower",
+    "+20 BUY"
+   ]);
+
+ }else if(price>bb.upper){
+
+   sell+=20;
+
+   rows.push([
+    "Bollinger",
+    "Di atas upper",
+    "+20 SELL"
+   ]);
+
+ }else if(price>bb.middle){
+
+   buy+=15;
+
+   rows.push([
+    "Bollinger",
+    "Di atas middle",
+    "+15 BUY"
+   ]);
+
+ }else{
+
+   sell+=15;
+
+   rows.push([
+    "Bollinger",
+    "Di bawah middle",
+    "+15 SELL"
+   ]);
+
+ }
+
+
+ /* MOMENTUM */
+
+ let momentum=
+ data[data.length-1]-
+ data[data.length-6];
+
+ if(momentum>0){
+
+   buy+=15;
+
+   rows.push([
+    "Momentum",
+    "Positif",
+    "+15 BUY"
+   ]);
+
+ }else{
+
+   sell+=15;
+
+   rows.push([
+    "Momentum",
+    "Negatif",
+    "+15 SELL"
+   ]);
+
+ }
+
+
+ /* SIGNAL */
+
+ let total=buy+sell;
+
+ let signal="WAIT";
+ let confidence=50;
+
+ if(buy>sell){
+
+   signal="BUY";
+   confidence=Math.round((buy/total)*100);
+
+ }else if(sell>buy){
+
+   signal="SELL";
+   confidence=Math.round((sell/total)*100);
+
+ }
+
+
+ /* DISPLAY */
+
+ let el=document.getElementById("signal");
+
+ el.textContent=signal;
+
+ el.className=
+ "signalName "+
+ signal.toLowerCase();
+
+ document.getElementById("confidence")
+ .textContent=
+ "Confidence "+confidence+"%";
+
+ document.getElementById("buyScore")
+ .textContent=buy;
+
+ document.getElementById("sellScore")
+ .textContent=sell;
+
+ let bar=document.getElementById("scoreBar");
+
+ bar.style.width=confidence+"%";
+
+ bar.style.background=
+ signal==="BUY"
+ ? "#20e58a"
+ : signal==="SELL"
+ ? "#ff5268"
+ : "#ffd45c";
+
+
+ let reason="";
+
+ if(signal==="BUY")
+ reason="Mayoritas indikator menunjukkan tekanan bullish.";
+
+ else if(signal==="SELL")
+ reason="Mayoritas indikator menunjukkan tekanan bearish.";
+
+ else
+ reason="Kekuatan BUY dan SELL relatif seimbang.";
+
+
+ document.getElementById("reason")
+ .textContent=reason;
+
+
+ /* INDICATORS */
+
+ document.getElementById("price")
+ .textContent=price.toFixed(5);
+
+ document.getElementById("ema9")
+ .textContent=ema9.toFixed(5);
+
+ document.getElementById("ema21")
+ .textContent=ema21.toFixed(5);
+
+ document.getElementById("rsi")
+ .textContent=rsi.toFixed(2);
+
+ document.getElementById("macd")
+ .textContent=macd.macd.toFixed(5);
+
+ document.getElementById("macdSignal")
+ .textContent=macd.signal.toFixed(5);
+
+ document.getElementById("bbUpper")
+ .textContent=bb.upper.toFixed(5);
+
+ document.getElementById("bbLower")
+ .textContent=bb.lower.toFixed(5);
+
+ document.getElementById("support")
+ .textContent=sr.support.toFixed(5);
+
+ document.getElementById("resistance")
+ .textContent=sr.resistance.toFixed(5);
+
+
+ /* TABLE */
+
+ let table=document.getElementById("analysisTable");
+
+ table.innerHTML="";
+
+ rows.forEach(row=>{
+
+   let tr=document.createElement("tr");
+
+   row.forEach(cell=>{
+
+     let td=document.createElement("td");
+
+     td.textContent=cell;
+
+     tr.appendChild(td);
+
+   });
+
+   table.appendChild(tr);
+
+ });
+
+
+ drawChart(data,ema9,ema21,bb);
+
+
+ addHistory(signal,confidence);
+
+}
+
+
+/* =========================
+   CHART
+========================= */
+
+function drawChart(data,ema9,ema21,bb){
+
+ let canvas=document.getElementById("chart");
+
+ let ctx=canvas.getContext("2d");
+
+ let w=canvas.clientWidth;
+ let h=canvas.clientHeight;
+
+ let dpr=window.devicePixelRatio||1;
+
+ canvas.width=w*dpr;
+ canvas.height=h*dpr;
+
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+
+ ctx.clearRect(0,0,w,h);
+
+ let min=Math.min(...data,bb.lower);
+ let max=Math.max(...data,bb.upper);
+
+ let range=max-min||1;
+
+
+ /* GRID */
+
+ ctx.strokeStyle="#1d3045";
+ ctx.lineWidth=1;
+
+ for(let i=0;i<6;i++){
+
+   let y=15+i*(h-30)/5;
+
+   ctx.beginPath();
+   ctx.moveTo(0,y);
+   ctx.lineTo(w,y);
+   ctx.stroke();
+
+ }
+
+
+ /* PRICE */
+
+ ctx.strokeStyle="#43a7ff";
+ ctx.lineWidth=2;
+
+ ctx.beginPath();
+
+ data.forEach((p,i)=>{
+
+   let x=10+i*(w-20)/(data.length-1);
+
+   let y=
+   h-15-
+   ((p-min)/range)*(h-30);
+
+   if(i===0)ctx.moveTo(x,y);
+   else ctx.lineTo(x,y);
+
+ });
+
+ ctx.stroke();
+
+
+ /* EMA9 */
+
+ drawLine(data,EMAArray(data,9),ctx,w,h,min,max,"#20e58a");
+
+ /* EMA21 */
+
+ drawLine(data,EMAArray(data,21),ctx,w,h,min,max,"#ffd45c");
+
+}
+
+
+/* =========================
+   EMA ARRAY
+========================= */
+
+function EMAArray(data,period){
+
+ let out=[];
+
+ if(data.length<period)return out;
+
+ let ema=average(data.slice(0,period));
+
+ for(let i=0;i<period-1;i++)
+ out.push(null);
+
+ out.push(ema);
+
+ let k=2/(period+1);
+
+ for(let i=period;i<data.length;i++){
+
+   ema=(data[i]-ema)*k+ema;
+
+   out.push(ema);
+
+ }
+
+ return out;
+
+}
+
+
+/* =========================
+   DRAW LINE
+========================= */
+
+function drawLine(data,values,ctx,w,h,min,max,color){
+
+ ctx.strokeStyle=color;
+ ctx.lineWidth=1.5;
+
+ ctx.beginPath();
+
+ let started=false;
+
+ values.forEach((v,i)=>{
+
+   if(v===null)return;
+
+   let x=10+i*(w-20)/(data.length-1);
+
+   let y=
+   h-15-
+   ((v-min)/(max-min||1))*(h-30);
+
+   if(!started){
+
+     ctx.moveTo(x,y);
+     started=true;
+
+   }else{
+
+     ctx.lineTo(x,y);
+
+   }
+
+ });
+
+ ctx.stroke();
+
+}
+
+
+/* =========================
+   HISTORY
+========================= */
+
+function addHistory(signal,confidence){
+
+ let body=document.getElementById("history");
+
+ let row=document.createElement("tr");
+
+ let time=
+ new Date().toLocaleTimeString("id-ID");
+
+ row.innerHTML=
+ `
+ <td>${time}</td>
+ <td>${document.getElementById("market").value}</td>
+ <td class="${
+ signal==="BUY"?"good":
+ signal==="SELL"?"bad":"warn"
+ }">${signal}</td>
+ <td>${confidence}%</td>
+ `;
+
+ body.prepend(row);
+
+ while(body.children.length>10)
+ body.removeChild(body.lastChild);
+
+}
+
+
+/* =========================
+   RANDOM DATA
+========================= */
+
+function randomData(){
+
+ let data=[];
+ let price=100;
+
+ for(let i=0;i<60;i++){
+
+   let change=(Math.random()-0.47)*3;
+
+   price+=change;
+
+   if(price<1)price=1;
+
+   data.push(price.toFixed(2));
+
+ }
+
+ document.getElementById("prices")
+ .value=data.join("\n");
+
+ analyze();
+
+}
+
+
+/* =========================
+   TIMER
+========================= */
+
+let timerSeconds=60;
+
+function updateTimer(){
+
+ let tf=
+ parseInt(
+ document.getElementById("timeframe").value
+ );
+
+ let now=Math.floor(Date.now()/1000);
+
+ let remaining=
+ tf-(now%tf);
+
+ let min=
+ Math.floor(remaining/60);
+
+ let sec=
+ remaining%60;
+
+ document.getElementById("timer")
+ .textContent=
+ String(min).padStart(2,"0")+
+ ":"+
+ String(sec).padStart(2,"0");
+
+}
+
+setInterval(updateTimer,1000);
+
+document.getElementById("timeframe")
+.addEventListener("change",updateTimer);
+
+updateTimer();
+
+window.addEventListener("resize",()=>{
+
+ let data=getData();
+
+ if(data.length>=30){
+
+   drawChart(
+    data,
+    EMA(data,9),
+    EMA(data,21),
+    Bollinger(data,20)
+   );
+
+ }
+
+});
+
+window.onload=analyze;
+
+</script>
+
+</body>
+</html>
